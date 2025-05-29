@@ -27,7 +27,7 @@ interface ExtendedTeamMember extends Omit<TeamMember, 'role'> {
   avatar?: string;
 }
 
-const TeamMembers: React.FC = () => {
+function TeamMembers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
@@ -395,6 +395,6 @@ const TeamMembers: React.FC = () => {
       )}
     </div>
   );
-};
+}
 
 export default TeamMembers; 
