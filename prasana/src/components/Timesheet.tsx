@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Project } from '../types';
 import { timesheetService } from '../services/timesheetService';
-import { TimeEntry as TimeEntryType, TimeEntryForm } from '../types/timesheet';
+import { TimeEntry as TimeEntryType, TimeEntryForm, TimeEntrySummary } from '../types/timesheet';
 import { Plus, Clock, Edit2, Trash2, Download, Tag, Filter, Calendar, ChevronLeft, ChevronRight, Grid, List, Layout, X, Bookmark } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 
@@ -65,8 +65,6 @@ const Timesheet: React.FC<TimesheetProps> = ({ projects }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('daily');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [displayMode, setDisplayMode] = useState<DisplayMode>('list');
-  const [templates, setTemplates] = useState<TimeEntryTemplate[]>([]);
-  const [showTemplates, setShowTemplates] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: '',
     dateRange: null,
@@ -196,7 +194,7 @@ const Timesheet: React.FC<TimesheetProps> = ({ projects }) => {
         }
 
         // Apply project filter
-        if (filters.projectFilter.length > 0 && !filters.projectFilter.includes(entry.projectId)) {
+        if (filters.projectFilter.length > 0 && entry.project_id !== null && !filters.projectFilter.includes(entry.project_id)) {
             return false;
         }
 
@@ -216,7 +214,7 @@ const Timesheet: React.FC<TimesheetProps> = ({ projects }) => {
           <div key={entry.id} className="bg-white p-4 rounded-lg border border-gray-200 hover:shadow-lg hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1">
             <div className="flex flex-col h-full">
               <div className="flex justify-between items-start mb-3">
-                <h3 className="font-medium text-gray-900">{entry.projectName}</h3>
+                <h3 className="font-medium text-gray-900">{entry.project_name_text || 'No Project'}</h3>
                 <span className="text-sm text-gray-500">
                   {new Date(entry.date).toLocaleDateString()}
                 </span>
@@ -242,7 +240,7 @@ const Timesheet: React.FC<TimesheetProps> = ({ projects }) => {
                       onClick={() => {
                         setEditingEntry(entry);
                         setManualEntry({
-                          projectId: entry.projectId,
+                          projectId: entry.project_id || '',
                           description: entry.description,
                           date: entry.date,
                           hours: Math.floor(entry.duration / 60),
@@ -294,7 +292,7 @@ const Timesheet: React.FC<TimesheetProps> = ({ projects }) => {
                   {new Date(entry.date).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {entry.projectName}
+                  {entry.project_name_text || 'No Project'}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
                   {entry.description}
@@ -322,7 +320,7 @@ const Timesheet: React.FC<TimesheetProps> = ({ projects }) => {
                       onClick={() => {
                         setEditingEntry(entry);
                         setManualEntry({
-                          projectId: entry.projectId,
+                          projectId: entry.project_id || '',
                           description: entry.description,
                           date: entry.date,
                           hours: Math.floor(entry.duration / 60),
@@ -361,8 +359,8 @@ const Timesheet: React.FC<TimesheetProps> = ({ projects }) => {
               <span className="text-sm text-gray-500 w-24">
                 {new Date(entry.date).toLocaleDateString()}
               </span>
-              <span className="font-medium text-gray-900">{entry.projectName}</span>
-              <span className="text-gray-600 truncate max-w-md">{entry.description}</span>
+              <span className="font-medium text-gray-900">{entry.project_name_text || 'No Project'}</span>
+              <span className="text-gray-600 truncate max-w-md">{entry.description || 'No description'}</span>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm font-medium text-blue-600">{formatDuration(entry.duration)}</span>
@@ -371,7 +369,7 @@ const Timesheet: React.FC<TimesheetProps> = ({ projects }) => {
                   onClick={() => {
                     setEditingEntry(entry);
                     setManualEntry({
-                      projectId: entry.projectId,
+                      projectId: entry.project_id || '',
                       description: entry.description,
                       date: entry.date,
                       hours: Math.floor(entry.duration / 60),
@@ -400,122 +398,97 @@ const Timesheet: React.FC<TimesheetProps> = ({ projects }) => {
   };
 
   const renderWeeklyView = (entries: TimeEntryType[]) => {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const { start } = getDateRange();
-    
+    const days: { date: string; entries: TimeEntryType[] }[] = [];
+    const startOfWeek = new Date(getDateRange().start);
+    for (let i = 0; i < 7; i++) {
+      const currentDate = new Date(startOfWeek);
+      currentDate.setDate(startOfWeek.getDate() + i);
+      const dateString = currentDate.toISOString().split('T')[0];
+      days.push({ date: dateString, entries: [] });
+    }
+
+    entries.forEach(entry => {
+      const dayIndex = days.findIndex(day => day.date === entry.date);
+      if (dayIndex !== -1) {
+        days[dayIndex].entries.push(entry);
+      }
+    });
+
     return (
-      <div className="grid grid-cols-7 gap-4">
-        {days.map((day, index) => {
-          const date = new Date(start);
-          date.setDate(date.getDate() + index);
-          const dayEntries = entries.filter(entry => 
-            new Date(entry.date).toDateString() === date.toDateString()
-          );
-          
-          return (
-            <div key={day} className="bg-white p-4 rounded-lg border border-gray-200 hover:shadow-lg hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1">
-              <h3 className="font-medium text-gray-900 mb-2">{day}</h3>
-              <p className="text-sm text-gray-500 mb-3">{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
-              <div className="space-y-3">
-                {dayEntries.map(entry => (
-                  <div key={entry.id} className="bg-blue-50 p-3 rounded-lg border border-blue-100 hover:bg-blue-100 transition-all duration-300">
-                    <p className="font-medium text-blue-900">{entry.projectName}</p>
-                    <p className="text-blue-700 text-sm mt-1">{entry.description}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-sm font-medium text-blue-600">{formatDuration(entry.duration)}</span>
-                      {entry.category && (
-                        <span className="inline-block bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full">
-                          {entry.category}
-                        </span>
-                      )}
+      <div className="space-y-6">
+        {days.map(day => (
+          <div key={day.date} className="border-b border-gray-200 pb-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">
+              {new Date(day.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </h3>
+            <div className="space-y-3">
+              {day.entries.length > 0 ? (
+                day.entries.map(entry => (
+                  <div key={entry.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex items-center justify-between">
+                    <div className="flex-1 pr-4">
+                      <h4 className="text-sm font-medium text-gray-900 truncate">{entry.project_name_text || 'No Project'}</h4>
+                      <p className="text-xs text-gray-600 truncate">{entry.description || 'No description'}</p>
                     </div>
-                    {entry.tags && entry.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {entry.tags.map(tag => (
-                          <span key={tag} className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <span className="text-sm font-semibold text-blue-600">{formatDuration(entry.duration)}</span>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-sm">No entries for this day.</p>
+              )}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     );
   };
 
   const renderMonthlyView = (entries: TimeEntryType[]) => {
-    const { start, end } = getDateRange();
-    const days = [];
-    const current = new Date(start);
-    
-    while (current <= end) {
-      days.push(new Date(current));
-      current.setDate(current.getDate() + 1);
+    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+    const days: { date: string; entries: TimeEntryType[]; totalDuration: number }[] = [];
+    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+
+    for (let i = 0; i < daysInMonth; i++) {
+      const date = new Date(startOfMonth);
+      date.setDate(startOfMonth.getDate() + i);
+      const dateString = date.toISOString().split('T')[0];
+      days.push({ date: dateString, entries: [], totalDuration: 0 });
     }
 
-    const firstDay = start.getDay();
-    const lastDay = end.getDay();
-    const totalDays = days.length + firstDay + (6 - lastDay);
-    const weeks = Math.ceil(totalDays / 7);
+    entries.forEach(entry => {
+      const dayIndex = days.findIndex(day => day.date === entry.date);
+      if (dayIndex !== -1) {
+        days[dayIndex].entries.push(entry);
+        days[dayIndex].totalDuration += entry.duration;
+      }
+    });
 
     return (
-      <div className="grid grid-cols-7 gap-1">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="text-center font-medium text-gray-500 py-2 bg-gray-50 rounded-t-lg">
-            {day}
-          </div>
-        ))}
-        
-        {Array.from({ length: weeks * 7 }).map((_, index) => {
-          const dayIndex = index - firstDay;
-          const date = dayIndex >= 0 && dayIndex < days.length ? days[dayIndex] : null;
-          const dayEntries = date ? entries.filter(entry => 
-            new Date(entry.date).toDateString() === date.toDateString()
-          ) : [];
-
-          const isToday = date && date.toDateString() === new Date().toDateString();
-
-          return (
-            <div
-              key={index}
-              className={`min-h-[120px] p-2 border border-gray-200 transition-all duration-300 hover:shadow-md ${
-                date ? 'bg-white hover:bg-blue-50' : 'bg-gray-50'
-              } ${isToday ? 'ring-2 ring-blue-500' : ''}`}
-            >
-              {date && (
-                <>
-                  <div className={`text-sm font-medium mb-1 ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
-                    {date.getDate()}
+      <div className="space-y-6">
+        {days.map(day => (
+          <div key={day.date} className="border-b border-gray-200 pb-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">
+              {new Date(day.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              {day.totalDuration > 0 && (
+                <span className="ml-3 text-blue-600">({formatDuration(day.totalDuration)})</span>
+              )}
+            </h3>
+            <div className="space-y-2">
+              {day.entries.length > 0 ? (
+                day.entries.map(entry => (
+                  <div key={entry.id} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex items-center justify-between">
+                    <div className="flex-1 pr-4">
+                      <h4 className="text-sm font-medium text-gray-900 truncate">{entry.project_name_text || 'No Project'}</h4>
+                      <p className="text-xs text-gray-600 truncate">{entry.description || 'No description'}</p>
+                    </div>
+                    <span className="text-sm font-semibold text-blue-600">{formatDuration(entry.duration)}</span>
                   </div>
-                  <div className="space-y-2">
-                    {dayEntries.map(entry => (
-                      <div 
-                        key={entry.id} 
-                        className="text-xs bg-blue-50 p-2 rounded-lg border border-blue-100 hover:bg-blue-100 transition-all duration-300"
-                      >
-                        <p className="font-medium text-blue-900 truncate">{entry.projectName}</p>
-                        <p className="text-blue-700 mt-1 truncate">{entry.description}</p>
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-blue-600 font-medium">{formatDuration(entry.duration)}</span>
-                          {entry.category && (
-                            <span className="inline-block bg-blue-200 text-blue-800 text-xs px-1.5 py-0.5 rounded-full">
-                              {entry.category}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
+                ))
+              ) : (
+                <p className="text-gray-500 text-sm">No entries for this day.</p>
               )}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     );
   };
@@ -633,7 +606,7 @@ const Timesheet: React.FC<TimesheetProps> = ({ projects }) => {
     const headers = ['Date', 'Project', 'Description', 'Duration', 'Category', 'Tags'];
     const csvData = timeEntries.map(entry => [
       new Date(entry.date).toLocaleDateString(),
-      entry.projectName,
+      entry.project_name_text || '',
       entry.description,
       formatDuration(entry.duration),
       entry.category || '',
@@ -659,7 +632,7 @@ const Timesheet: React.FC<TimesheetProps> = ({ projects }) => {
     const entries = getViewEntries();
     const totalHours = entries.reduce((sum, entry) => sum + entry.duration, 0) / 60;
     const projectHours = entries.reduce((acc, entry) => {
-        acc[entry.projectName] = (acc[entry.projectName] || 0) + entry.duration / 60;
+        acc[entry.project_name_text || ''] = (acc[entry.project_name_text || ''] || 0) + entry.duration / 60;
         return acc;
     }, {} as Record<string, number>);
     
@@ -685,46 +658,32 @@ const Timesheet: React.FC<TimesheetProps> = ({ projects }) => {
 }, [getViewEntries]);
 
   const getFilteredProjects = () => {
-    if (!projectSearch) return projects;
-    return projects.filter(project => 
-      project.name.toLowerCase().includes(projectSearch.toLowerCase())
+    if (!projects) {
+      return [];
+    }
+    const lowerCaseSearch = projectSearch.toLowerCase();
+    return projects.filter(project =>
+      project.name.toLowerCase().includes(lowerCaseSearch)
     );
   };
 
-  const useTemplate = (template: TimeEntryTemplate) => {
-    if (!template.projectId && projects.length > 0) {
-      // If no project is set in template, use the first project
-      template.projectId = projects[0].id;
-      setProjectSearch(projects[0].name);
-    } else {
-      // Set the project search to the matching project name
-      const project = projects.find(p => p.id === template.projectId);
-      if (project) {
-        setProjectSearch(project.name);
-      }
+  const handleClickOutside = (event: MouseEvent) => {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.project-search-container')) {
+      setShowProjectSuggestions(false);
     }
-    
-    setManualEntry({
-      ...template,
-      date: new Date().toISOString().split('T')[0]
-    });
-    setShowManualEntry(true);
-    setShowTemplates(false);
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.project-search-container')) {
-        setShowProjectSuggestions(false);
+  const updateFilters = (newFilters: Partial<FilterState>) => {
+    setFilters(prevFilters => {
+      const updatedFilters = { ...prevFilters, ...newFilters };
+      // Ensure projectFilter contains only strings, filtering out null or undefined
+      if (updatedFilters.projectFilter) {
+        updatedFilters.projectFilter = updatedFilters.projectFilter.filter((id): id is string => typeof id === 'string');
       }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+      return updatedFilters;
+    });
+  };
 
   const renderFilters = () => {
     return (
@@ -822,30 +781,30 @@ const Timesheet: React.FC<TimesheetProps> = ({ projects }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="container mx-auto px-4 py-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Time Tracking</h2>
-          <p className="text-gray-600 mt-1">Track and manage your work hours</p>
+          <h2 className="text-xl font-bold text-gray-800">Time Tracking</h2>
+          <p className="text-gray-600">Track and manage your work hours</p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <button
             onClick={() => setShowFilters(true)}
-            className="px-4 py-2 bg-gray-600 text-white rounded-md flex items-center hover:bg-gray-700 transition-all duration-300 transform hover:-translate-y-0.5"
+            className="px-4 py-2 bg-gray-700 text-white rounded-md flex items-center hover:bg-gray-600 transition-colors text-sm"
           >
             <Filter size={18} className="mr-1" />
             <span>Filter</span>
           </button>
           <button
             onClick={exportToCSV}
-            className="px-4 py-2 bg-gray-600 text-white rounded-md flex items-center hover:bg-gray-700 transition-all duration-300 transform hover:-translate-y-0.5"
+            className="px-4 py-2 bg-gray-700 text-white rounded-md flex items-center hover:bg-gray-600 transition-colors text-sm"
           >
             <Download size={18} className="mr-1" />
             <span>Export</span>
           </button>
           <button
             onClick={() => setShowManualEntry(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-md flex items-center hover:bg-green-700 transition-all duration-300 transform hover:-translate-y-0.5"
+            className="px-4 py-2 bg-green-600 text-white rounded-md flex items-center justify-center hover:bg-green-700 transition-colors text-sm whitespace-nowrap"
           >
             <Plus size={18} className="mr-1" />
             <span>Add Time Entry</span>

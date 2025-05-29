@@ -24,7 +24,7 @@ interface UserProviderProps {
 }
 
 // List of admin emails (add your admin emails here)
-const ADMIN_EMAILS = ['admin@example.com', 'admin@internal.com', 'eash@gmail.com'];
+const ADMIN_EMAILS = ['admin@example.com', 'support@technosprint.net', 'eash@gmail.com'];
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);

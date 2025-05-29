@@ -276,5 +276,62 @@ export const timesheetService = {
             console.error('Error in getTimeEntrySummary:', error);
             throw error;
         }
+    },
+
+    // Fetch all time entries for all users
+    async getAllTimeEntries(startDate: string, endDate: string): Promise<TimeEntry[]> {
+        try {
+            const { data, error } = await supabase
+                .from('time_entries')
+                .select(`
+                    id,
+                    user_id,
+                    project_id,
+                    project_name_text,
+                    description,
+                    start_time,
+                    end_time,
+                    duration,
+                    date,
+                    category,
+                    tags,
+                    created_at,
+                    updated_at
+                `)
+                .gte('date', startDate)
+                .lte('date', endDate)
+                .order('date', { ascending: false });
+
+            if (error) {
+                console.error('Supabase query error:', error);
+                throw error;
+            }
+
+            const transformedEntries: TimeEntry[] = (data || []).map(entry => {
+                if (!entry) return undefined;
+                if (!('id' in entry) || !('user_id' in entry) || !('date' in entry)) return undefined;
+                const result: TimeEntry = {
+                    id: entry.id,
+                    user_id: entry.user_id,
+                    project_id: entry.project_id,
+                    description: entry.description,
+                    start_time: entry.start_time,
+                    end_time: entry.end_time,
+                    duration: entry.duration,
+                    date: entry.date,
+                    created_at: entry.created_at,
+                    updated_at: entry.updated_at,
+                };
+                if (entry.project_name_text) result.project_name_text = entry.project_name_text;
+                if (entry.category) result.category = entry.category;
+                if (entry.tags) result.tags = entry.tags;
+                return result;
+            }).filter((entry): entry is TimeEntry => !!entry);
+
+            return transformedEntries;
+        } catch (error) {
+            console.error('Error in getAllTimeEntries:', error);
+            return [];
+        }
     }
 }; 

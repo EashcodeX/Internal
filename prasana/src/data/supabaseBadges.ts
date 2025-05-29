@@ -69,13 +69,13 @@ export const fetchUserBadges = async (userId: string): Promise<Badge[]> => {
 };
 
 // Assign a badge to a user (admin only)
-export async function assignBadge(userId: string, badgeId: string, expiryDays: number = 90) {
+export async function assignBadge(_userId: string, badgeId: string, expiryDays: number = 90) {
   try {
     const { data, error } = await supabase
       .from('badge_assignments')
       .insert([
         {
-          user_id: userId,
+          user_id: _userId,
           badge_id: badgeId,
           awarded_date: new Date().toISOString(),
           expiry_days: expiryDays

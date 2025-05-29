@@ -79,7 +79,7 @@ const TeamCollaborationView: React.FC<TeamCollaborationProps> = ({ projects }) =
             >
               <div className="relative w-12 h-12 mr-4">
                 <img
-                  src={`/profiles/${team.toLowerCase()}.png`}
+                  src={`${import.meta.env.BASE_URL}profiles/${team.toLowerCase()}.png`}
                   alt={`${team} logo`}
                   className="w-full h-full object-contain"
                 />
@@ -175,7 +175,7 @@ const TeamCollaborationView: React.FC<TeamCollaborationProps> = ({ projects }) =
                           <div key={project.id} className="border rounded-lg overflow-hidden">
                             <div 
                               className={`p-4 cursor-pointer hover:bg-gray-50 ${isLeadTeam ? 'border-l-4 border-l-blue-500' : ''}`}
-                              onClick={() => toggleProject(project.id)}
+                              onClick={() => project.id && toggleProject(String(project.id))}
                             >
                               <div className="flex items-center justify-between">
                                 <div>

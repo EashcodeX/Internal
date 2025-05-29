@@ -21,37 +21,67 @@ const Header: React.FC<HeaderProps> = ({
   currentPage = 'dashboard'
 }) => {
   const [searchValue, setSearchValue] = useState('');
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const { currentUser, logout } = useUser();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSearchQuery(searchValue);
+    if (isMobileSearchOpen) {
+      setIsMobileSearchOpen(false);
+    }
+  };
+
+  const getPageTitle = (page: typeof currentPage) => {
+    switch (page) {
+      case 'dashboard':
+        return 'Dashboard';
+      case 'analytics':
+        return 'Analytics';
+      case 'projects':
+        return 'Projects';
+      case 'collaboration':
+        return 'Team Collaboration';
+      case 'timesheet':
+        return 'Timesheet';
+      case 'team-members':
+        return 'Team Members';
+      default:
+        return 'Dashboard';
+    }
   };
 
   const renderViewToggle = () => {
     switch (currentPage) {
-      case 'analytics':
+      case 'projects':
         return (
-          <div className="hidden sm:flex items-center space-x-2 border rounded-lg p-1 bg-gray-50">
+          <div className="flex items-center space-x-2 border rounded-lg p-1 bg-gray-50">
             <button
               className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setViewMode('grid')}
-              title="Chart View"
+              title="Grid View"
             >
               <LayoutGrid size={18} />
             </button>
             <button
               className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setViewMode('list')}
-              title="Table View"
+              title="List View"
             >
-              <Table size={18} />
+              <List size={18} />
+            </button>
+            <button
+              className={`p-1.5 rounded ${viewMode === 'kanban' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+              onClick={() => setViewMode('kanban')}
+              title="Kanban View"
+            >
+              <Kanban size={18} />
             </button>
           </div>
         );
       case 'timesheet':
         return (
-          <div className="hidden sm:flex items-center space-x-2 border rounded-lg p-1 bg-gray-50">
+          <div className="flex items-center space-x-2 border rounded-lg p-1 bg-gray-50">
             <button
               className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
               onClick={() => setViewMode('grid')}
@@ -76,46 +106,22 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         );
       default:
-        return (
-          <div className="hidden sm:flex items-center space-x-2 border rounded-lg p-1 bg-gray-50">
-            <button
-              className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-              onClick={() => setViewMode('grid')}
-              title="Grid View"
-            >
-              <LayoutGrid size={18} />
-            </button>
-            <button
-              className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-              onClick={() => setViewMode('list')}
-              title="List View"
-            >
-              <List size={18} />
-            </button>
-            <button
-              className={`p-1.5 rounded ${viewMode === 'kanban' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-              onClick={() => setViewMode('kanban')}
-              title="Kanban View"
-            >
-              <Kanban size={18} />
-            </button>
-          </div>
-        );
+        return null; // Hide toggles on other pages for now
     }
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 py-4 px-6 flex items-center justify-between sticky top-0 z-10">
+    <header className="bg-neutral-50 border-b border-neutral-200 py-4 px-6 flex items-center justify-between sticky top-0 z-10">
       <div className="flex items-center">
         <button 
           onClick={toggleSidebar}
-          className="mr-4 text-gray-500 hover:text-gray-700 md:hidden"
+          className="mr-4 text-neutral-500 hover:text-neutral-700 md:hidden"
         >
           <MenuIcon size={24} />
         </button>
-        <h1 className="text-xl font-bold text-gray-800 flex items-center">
-          <span className="text-blue-600 mr-2">Technosprint</span> 
-          <span className="hidden sm:inline">Dashboard</span>
+        <h1 className="text-xl font-bold text-neutral-800 flex items-center">
+          <span className="text-primary mr-2">Technosprint</span> 
+          <span>{getPageTitle(currentPage)}</span>
         </h1>
       </div>
 
@@ -124,18 +130,27 @@ const Header: React.FC<HeaderProps> = ({
           <input
             type="text"
             placeholder="Search projects, clients..."
-            className="w-full py-2 pl-10 pr-4 text-sm bg-gray-100 border border-transparent rounded-lg focus:outline-none focus:border-blue-500 focus:bg-white"
+            className="w-full py-2 pl-10 pr-4 text-sm bg-neutral-100 border border-transparent rounded-lg focus:outline-none focus:border-primary focus:bg-white"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
           />
-          <button type="submit" className="absolute left-3 top-2.5 text-gray-400">
+          <button type="submit" className="absolute left-3 top-2.5 text-neutral-400">
             <Search size={18} />
           </button>
         </form>
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-4 md:hidden">
+        <button
+          onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+          className="text-neutral-500 hover:text-neutral-700 mr-4"
+        >
+          <Search size={24} />
+        </button>
         {showViewToggle && renderViewToggle()}
+      </div>
+
+      <div className="flex items-center space-x-4">
         {currentUser && (
           <div className="flex items-center space-x-3 ml-4">
             <img
@@ -143,16 +158,34 @@ const Header: React.FC<HeaderProps> = ({
               alt="User avatar"
               className="w-8 h-8 rounded-full"
             />
-            <span className="text-gray-700 text-sm font-medium">{currentUser.name || currentUser.email}</span>
+            <span className="text-neutral-700 text-sm font-medium">{currentUser.name || currentUser.email}</span>
             <button
               onClick={logout}
-              className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+              className="px-3 py-1 bg-danger text-white rounded hover:bg-red-600 text-sm"
             >
               Logout
             </button>
           </div>
         )}
       </div>
+
+      {isMobileSearchOpen && (
+        <div className="absolute top-full left-0 right-0 bg-white border-b border-gray-200 p-4 md:hidden">
+          <form onSubmit={handleSearch} className="relative">
+            <input
+              type="text"
+              placeholder="Search projects, clients..."
+              className="w-full py-2 pl-10 pr-4 text-sm bg-neutral-100 border border-transparent rounded-lg focus:outline-none focus:border-primary focus:bg-white"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              autoFocus
+            />
+            <button type="submit" className="absolute left-3 top-2.5 text-neutral-400">
+              <Search size={18} />
+            </button>
+          </form>
+        </div>
+      )}
     </header>
   );
 };

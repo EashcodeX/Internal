@@ -26,10 +26,10 @@ export interface TeamMember {
 
 export interface Milestone {
   id: string;
-  title: string;
-  date: string;
+  name: string;
+  dueDate: string;
   completed: boolean;
-  delayed: boolean;
+  delayed?: boolean;
 }
 
 export interface Project {
@@ -37,7 +37,7 @@ export interface Project {
   name: string;
   team: TeamName;
   clientName: string;
-  clientLogo: string;
+  clientLogo?: string;
   clientDomain: string;
   clientCategory: ClientCategory;
   status: ProjectStatus;
@@ -48,6 +48,7 @@ export interface Project {
   teamMembers: TeamMember[];
   hasTasksModule?: boolean;
   tasks?: Task[];
+  companyLogoUrl?: string;
 }
 
 export interface User {

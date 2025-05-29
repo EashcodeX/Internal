@@ -1,0 +1,1 @@
+{"root":["./src/contexts/loadingcontext.tsx","./src/contexts/usercontext.tsx","./src/data/mockdata.ts","./src/data/supabasebadges.ts","./src/data/supabaseprojects.ts","./src/data/supabaseresource.ts","./src/data/taskdata.ts","./src/pages/teammembers.tsx","./src/types/index.ts","./src/types/resource.ts","./src/types/team.ts"],"errors":true,"version":"5.8.3"}

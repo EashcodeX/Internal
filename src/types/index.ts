@@ -22,12 +22,19 @@ export interface Project {
   client: string;
   startDate: string;
   endDate: string;
+  clientName?: string;
+  clientDomain?: string;
+  milestones?: Array<{
+    name: string;
+    dueDate: string;
+  }>;
   teamMembers: Array<{
     id: string;
     name: string;
     role: string;
     avatar?: string;
   }>;
+  companyLogoUrl?: string;
 }
 
 // ... rest of the existing code ... 

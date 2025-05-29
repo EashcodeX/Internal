@@ -6,7 +6,9 @@ import BadgeImage from '../components/BadgeImage';
 import { Search, Filter, Award } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import { fetchUserBadges } from '../data/supabaseBadges';
-import { TeamMember } from '../types/team';
+import { TeamMember, Role } from '../types/team';
+import { fetchSkills, fetchLeaves, fetchPerformanceMetrics } from '../../../src/data/supabaseResource';
+import { Skill, Leave, TeamMemberPerformance } from '../../../src/types/resource';
 
 // Helper function to generate a deterministic ID from a name
 const generateMemberId = (name: string, team: string, role: string) => {
@@ -16,18 +18,71 @@ const generateMemberId = (name: string, team: string, role: string) => {
   return `${cleanTeam}_${cleanName}_${cleanRole}`;
 };
 
+interface ExtendedTeamMember extends Omit<TeamMember, 'role'> {
+  id: string;
+  team: string;
+  role: Role;
+  isLeadership: boolean;
+  designation?: string;
+  avatar?: string;
+}
+
 const TeamMembers: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
-  const [selectedMember, setSelectedMember] = useState<any | null>(null);
+  const [selectedMember, setSelectedMember] = useState<ExtendedTeamMember | null>(null);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   const { isAdmin } = useUser();
   const [memberBadges, setMemberBadges] = useState<Record<string, any[]>>({});
+  
+  // State for detailed profile data
+  const [selectedMemberSkills, setSelectedMemberSkills] = useState<Skill[]>([]);
+  const [selectedMemberLeaves, setSelectedMemberLeaves] = useState<Leave[]>([]);
+  const [selectedMemberPerformance, setSelectedMemberPerformance] = useState<TeamMemberPerformance[]>([]);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   useEffect(() => {
     loadAllMemberBadges();
   }, []);
+
+  // Effect to load detailed profile data when a member is selected
+  useEffect(() => {
+    const loadMemberProfileData = async () => {
+      if (selectedMember && selectedMember.id) {
+        setProfileLoading(true);
+        setProfileError(null);
+        try {
+          // Fetch skills
+          const skills = await fetchSkills(selectedMember.id);
+          setSelectedMemberSkills(skills);
+
+          // Fetch leaves
+          const leaves = await fetchLeaves(selectedMember.id);
+          setSelectedMemberLeaves(leaves);
+
+          // Fetch performance
+          const performance = await fetchPerformanceMetrics(selectedMember.id);
+          setSelectedMemberPerformance(performance);
+
+        } catch (err: any) {
+          console.error('Failed to fetch member profile data:', err);
+          setProfileError('Failed to load profile data.' + (err?.message || JSON.stringify(err)));
+        } finally {
+          setProfileLoading(false);
+        }
+      } else {
+        // Reset profile data when no member is selected
+        setSelectedMemberSkills([]);
+        setSelectedMemberLeaves([]);
+        setSelectedMemberPerformance([]);
+        setProfileError(null);
+      }
+    };
+
+    loadMemberProfileData();
+  }, [selectedMember]); // Re-run effect when selectedMember changes
 
   // Get all team members with generated IDs
   const allMembers = Object.entries(teams).flatMap(([teamKey, teamData]) => {
@@ -37,21 +92,21 @@ const TeamMembers: React.FC = () => {
         ...teamData.sdm,
         id: teamData.sdm.id || generateMemberId(teamData.sdm.name, team, 'sdm'),
         team,
-        role: 'Service Delivery Manager',
+        role: 'Service Delivery Manager' as Role,
         isLeadership: true
       },
       {
         ...teamData.tdm,
         id: teamData.tdm.id || generateMemberId(teamData.tdm.name, team, 'tdm'),
         team,
-        role: 'Technical Account Manager',
+        role: 'Technical Account Manager' as Role,
         isLeadership: true
       },
       {
         ...teamData.cxm,
         id: teamData.cxm.id || generateMemberId(teamData.cxm.name, team, 'cxm'),
         team,
-        role: 'Client Experience Manager',
+        role: 'Client Experience Manager' as Role,
         isLeadership: true
       },
       ...teamData.members.map(member => ({
@@ -170,9 +225,10 @@ const TeamMembers: React.FC = () => {
         {filteredMembers.map((member, index) => (
           <div
             key={index}
-            className={`bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow ${
+            className={`bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow cursor-pointer ${
               member.isLeadership ? 'border-blue-200' : 'border-gray-200'
             }`}
+            onClick={() => setSelectedMember(member as ExtendedTeamMember)}
           >
             <div className="flex items-start space-x-4">
               <ProfileAvatar
@@ -231,8 +287,9 @@ const TeamMembers: React.FC = () => {
                 {/* Manage Badges Button (Admin Only) */}
                 {isAdmin && (
                   <button
-                    onClick={() => {
-                      setSelectedMember(member);
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedMember(member as ExtendedTeamMember);
                       setShowBadgeModal(true);
                     }}
                     className="mt-3 text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
@@ -255,6 +312,72 @@ const TeamMembers: React.FC = () => {
           <p className="mt-1 text-sm text-gray-500">
             Try adjusting your search or filter criteria
           </p>
+        </div>
+      )}
+
+      {/* User Profile Detail Section */}
+      {selectedMember && (
+        <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">{selectedMember.name} - Profile</h2>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedMember(null);
+              }}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              Close
+            </button>
+          </div>
+          
+          {profileLoading && <div className="text-center text-gray-600">Loading profile details...</div>}
+          {profileError && <div className="text-red-600">Error: {profileError}</div>}
+
+          {!profileLoading && !profileError && (
+            <div className="space-y-4">
+              <div>
+                <p><strong>Role:</strong> {selectedMember.role}</p>
+                <p><strong>Team:</strong> {selectedMember.team}</p>
+                {/* Add other basic details from selectedMember object if available */}
+              </div>
+
+              {/* Skills Section */}
+              {selectedMemberSkills.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Skills</h3>
+                  <ul className="list-disc list-inside">
+                    {selectedMemberSkills.map((skill, index) => (
+                      <li key={index}>{skill.name}</li> // Assuming skill object has a 'name' property
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Leaves Section */}
+              {selectedMemberLeaves.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Leave History</h3>
+                  {/* Render leave history details here */}
+                   <p className="text-sm text-gray-600">Leave history display coming soon...</p>
+                </div>
+              )}
+
+              {/* Performance Section */}
+              {selectedMemberPerformance.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Performance Metrics</h3>
+                   {/* Render performance metrics here */}
+                  <p className="text-sm text-gray-600">Performance metrics display coming soon...</p>
+                </div>
+              )}
+
+               {/* Message if no detailed data is available */}
+              {selectedMemberSkills.length === 0 && selectedMemberLeaves.length === 0 && selectedMemberPerformance.length === 0 && (
+                 <p className="text-gray-600 text-sm italic">No detailed profile data available for this member.</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 

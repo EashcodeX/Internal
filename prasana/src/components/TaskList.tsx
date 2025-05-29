@@ -20,8 +20,9 @@ export interface Task {
 interface TaskListProps {
   tasks: Task[];
   onTaskStatusChange?: (taskId: string, newStatus: Task['status']) => void;
-  onTaskDelete?: (taskId: string) => void;
-  onTaskProgressChange?: (taskId: string, progress: number) => void;
+  isAdmin: boolean;
+  onDeleteTask?: (taskId: string) => void;
+  onUpdateTaskProgress?: (taskId: string, progress: number) => void;
 }
 
 const priorityClasses = {
@@ -37,7 +38,7 @@ const statusIcons = {
   'blocked': <AlertCircle size={16} className="text-red-500" />
 };
 
-const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskStatusChange, onTaskDelete, onTaskProgressChange }) => {
+const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskStatusChange, isAdmin, onDeleteTask, onUpdateTaskProgress }) => {
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [editingProgressTaskId, setEditingProgressTaskId] = useState<string | null>(null);
   const [progressValue, setProgressValue] = useState<number>(0);
@@ -54,20 +55,22 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskStatusChange, onTaskDe
 
   const handleDeleteTask = (e: React.MouseEvent, taskId: string) => {
     e.stopPropagation();
-    if (onTaskDelete) {
-      onTaskDelete(taskId);
+    if (isAdmin && onDeleteTask) {
+      onDeleteTask(taskId);
     }
   };
 
   const startEditingProgress = (e: React.MouseEvent, taskId: string, currentProgress: number = 0) => {
     e.stopPropagation();
-    setEditingProgressTaskId(taskId);
-    setProgressValue(currentProgress);
+    if (isAdmin) {
+      setEditingProgressTaskId(taskId);
+      setProgressValue(currentProgress);
+    }
   };
 
   const handleProgressChange = (taskId: string, progress: number) => {
-    if (onTaskProgressChange) {
-      onTaskProgressChange(taskId, progress);
+    if (isAdmin && onUpdateTaskProgress) {
+      onUpdateTaskProgress(taskId, progress);
       setEditingProgressTaskId(null);
     }
   };
@@ -130,7 +133,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskStatusChange, onTaskDe
                       </span>
                     )}
                     
-                    {onTaskDelete && (
+                    {isAdmin && onDeleteTask && (
                       <button
                         className="text-gray-400 hover:text-red-500 focus:outline-none p-1"
                         onClick={(e) => handleDeleteTask(e, task.id)}
@@ -146,7 +149,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskStatusChange, onTaskDe
                   <div className="mt-3 pl-8">
                     <p className="text-sm text-gray-600 mb-2">{task.description}</p>
                     
-                    {onTaskProgressChange && editingProgressTaskId === task.id ? (
+                    {isAdmin && onUpdateTaskProgress && editingProgressTaskId === task.id ? (
                       <div className="flex items-center mb-3 mt-2">
                         <label className="text-xs text-gray-500 mr-2 w-16">Progress:</label>
                         <input 
@@ -169,7 +172,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskStatusChange, onTaskDe
                         </button>
                       </div>
                     ) : (
-                      onTaskProgressChange && (
+                      isAdmin && onUpdateTaskProgress && (
                         <div className="flex items-center mb-3 mt-2">
                           <span className="text-xs text-gray-500 mr-2">Progress:</span>
                           <div className="flex-grow bg-gray-200 h-2 rounded-full overflow-hidden">
@@ -199,7 +202,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskStatusChange, onTaskDe
                             handleStatusChange(task.id, 'todo');
                           }}
                         >
-                          To Do
+                          Mark as To Do
                         </button>
                         <button 
                           className="hover:text-amber-600"
@@ -208,7 +211,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskStatusChange, onTaskDe
                             handleStatusChange(task.id, 'in-progress');
                           }}
                         >
-                          In Progress
+                          Mark as In Progress
                         </button>
                         <button 
                           className="hover:text-green-600"
@@ -217,7 +220,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskStatusChange, onTaskDe
                             handleStatusChange(task.id, 'completed');
                           }}
                         >
-                          Completed
+                          Mark as Completed
                         </button>
                         <button 
                           className="hover:text-red-600"
@@ -226,7 +229,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskStatusChange, onTaskDe
                             handleStatusChange(task.id, 'blocked');
                           }}
                         >
-                          Blocked
+                          Mark as Blocked
                         </button>
                       </div>
                     </div>

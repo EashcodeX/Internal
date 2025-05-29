@@ -6,6 +6,7 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   root: 'prasana',
+  base: '/INTERNAL/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './prasana/src')

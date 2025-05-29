@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../../prasana/src/supabaseClient';
 import { 
   Availability, 
   ResourceAllocation, 

@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { Project } from '../types';
+import { createActivity } from './supabaseActivities';
 
 export async function fetchProjects(): Promise<Project[]> {
   const { data, error } = await supabase
@@ -27,6 +28,7 @@ export async function fetchProjects(): Promise<Project[]> {
     tasks: p.tasks ?? [],
     createdAt: p.created_at,
     updatedAt: p.updated_at,
+    companyLogoUrl: p.company_logo_url,
   }));
 }
 
@@ -57,6 +59,20 @@ export async function addProject(project: Project): Promise<Project> {
     .select()
     .single();
   if (error) throw error;
+
+  // Get current user ID
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id || '';
+
+  // Create activity for project creation
+  await createActivity(
+    'project_created',
+    userId,
+    'project',
+    data.id,
+    { name: data.name }
+  );
+
   return data;
 }
 
@@ -75,13 +91,51 @@ export async function updateProject(id: string, updates: Partial<Project>): Prom
     .select()
     .single();
   if (error) throw error;
+
+  // Get current user ID
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id || '';
+
+  // Create activity for project update
+  await createActivity(
+    'project_updated',
+    userId,
+    'project',
+    id,
+    { name: data.name, changes: Object.keys(updates) }
+  );
+
   return data;
 }
 
 export async function deleteProject(id: string): Promise<void> {
+  // Get project name before deletion for activity
+  const { data: project } = await supabase
+    .from('projects')
+    .select('name')
+    .eq('id', id)
+    .single();
+
+  if (!project) {
+    throw new Error(`Project with id ${id} not found`);
+  }
+
   const { error } = await supabase
     .from('projects')
     .delete()
     .eq('id', id);
   if (error) throw error;
+
+  // Get current user ID
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id || '';
+
+  // Create activity for project deletion
+  await createActivity(
+    'project_deleted',
+    userId,
+    'project',
+    id,
+    { name: project.name }
+  );
 } 

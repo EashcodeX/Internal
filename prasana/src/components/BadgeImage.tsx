@@ -32,12 +32,12 @@ const BadgeImage: React.FC<BadgeImageProps> = ({ name, daysRemaining, awardedDat
     <div className={`relative group ${className}`}>
       <div className="relative">
         <img
-          src={imagePath ? `/${imagePath}` : '/profiles/default-badge.jpg'}
+          src={imagePath ? `${import.meta.env.BASE_URL}${imagePath}` : `${import.meta.env.BASE_URL}profiles/default-badge.jpg`}
           alt={name}
           className="w-12 h-12 rounded-lg border-2 border-gray-200 hover:border-blue-400 transition-colors object-cover"
           onError={(e) => {
             console.error('Failed to load image:', imagePath);
-            e.currentTarget.src = '/profiles/default-badge.jpg';
+            e.currentTarget.src = `${import.meta.env.BASE_URL}profiles/default-badge.jpg`;
           }}
         />
         {daysRemaining !== undefined && daysRemaining < 30 && (

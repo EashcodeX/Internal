@@ -48,7 +48,7 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
     // Get team logo path
     const getTeamLogo = (team?: string) => {
         if (!team) return null;
-        return `/profiles/${team.toLowerCase()}.png`;
+        return `${import.meta.env.BASE_URL}profiles/${team.toLowerCase()}.png`;
     };
 
     const teamLogo = getTeamLogo(team);
@@ -60,7 +60,7 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
                     <div className={`absolute inset-0 rounded-full ${neutralBg} animate-pulse`} />
                 )}
                 <img
-                    src={avatar}
+                    src={avatar?.startsWith('http') ? avatar : `${import.meta.env.BASE_URL}${avatar.replace(/^\//, '')}`}
                     alt={name}
                     className={`rounded-full object-cover w-full h-full transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                     onLoad={() => setIsLoading(false)}
