@@ -58,6 +58,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onDelete
   const [editStatus, setEditStatus] = useState<ProjectStatus>(project.status || 'Ongoing');
   const [editStartDate, setEditStartDate] = useState(project.startDate || '');
   const [editEndDate, setEditEndDate] = useState(project.endDate || '');
+  const [editCompanyLogoUrl, setEditCompanyLogoUrl] = useState(project.companyLogoUrl || '');
   
   const { isAdmin } = useUser();
   
@@ -275,6 +276,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onDelete
         status: editStatus,
         startDate: editStartDate,
         endDate: editEndDate,
+        companyLogoUrl: editCompanyLogoUrl,
       });
       
       // Update local state
@@ -288,6 +290,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onDelete
         status: editStatus,
         startDate: editStartDate,
         endDate: editEndDate,
+        companyLogoUrl: editCompanyLogoUrl,
       });
       
       // Close the edit form
@@ -295,6 +298,34 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onDelete
     } catch (error) {
       console.error('Failed to update project:', error);
       alert('Failed to update project. Please try again.');
+    }
+  };
+  
+  // Add handleRemoveTeamMember function
+  const handleRemoveTeamMember = async (memberId: string) => {
+    if (!isAdmin) return;
+
+    // Confirm before removing
+    if (!confirm('Are you sure you want to remove this team member from the project?')) {
+      return;
+    }
+
+    // Update local state
+    const updatedTeamMembers = (project.teamMembers || []).filter(
+      (member) => member.id !== memberId
+    );
+
+    // Update the project in Supabase
+    try {
+      await updateProject(project.id || '', { teamMembers: updatedTeamMembers });
+      // Update local project state to reflect the change immediately
+      project.teamMembers = updatedTeamMembers;
+      console.log('Team member removed successfully.');
+    } catch (error) {
+      console.error('Failed to remove team member:', error);
+      alert('Failed to remove team member. Please try again.');
+      // Optionally, revert local state on error
+      // Object.assign(project, { teamMembers: project.teamMembers }); // Use original teamMembers
     }
   };
   
@@ -479,6 +510,20 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onDelete
                 />
               </div>
               
+              <div className="md:col-span-2">
+                <label htmlFor="editCompanyLogoUrl" className="block text-sm font-medium text-gray-700 mb-1">
+                  Company Logo URL
+                </label>
+                <input
+                  id="editCompanyLogoUrl"
+                  type="text"
+                  value={editCompanyLogoUrl}
+                  onChange={(e) => setEditCompanyLogoUrl(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter logo URL"
+                />
+              </div>
+              
               <div className="flex justify-end">
                 <button
                   type="submit"
@@ -490,349 +535,272 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({ project, onBack, onDelete
             </form>
           </div>
         ) : (
-          <>
-            <div className="flex items-center justify-between mb-4">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${teamColorClasses[project.team || 'TITAN'] || ''}`}>
-                {project.team || 'TITAN'}
-              </span>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColorClasses[project.status || 'Ongoing'] || ''}`}>
-                {project.status || 'Ongoing'}
-              </span>
-            </div>
-            
-            <h2 className="font-bold text-2xl mb-4 text-gray-900">{project.name || ''}</h2>
-            
-            <div className="flex items-center mb-6">
+          <div className="mb-6">
+            {/* Company Logo - Placeholder for now */}
+            {project.companyLogoUrl && (
               <img 
-                src={project.clientLogo} 
-                alt={project.clientName || ''} 
-                className="w-12 h-12 object-contain rounded mr-4 bg-gray-50"
+                src={project.companyLogoUrl}
+                alt={`${project.clientName || 'Company'} Logo`}
+                className="w-16 h-16 object-contain mb-4"
               />
-              <div>
-                <h4 className="font-medium">{project.clientName || ''}</h4>
-                <div className="flex items-center text-sm text-gray-500">
-                  <Globe size={14} className="mr-1" />
-                  {project.clientDomain || ''}
-                </div>
-              </div>
+            )}
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{project.name || 'Untitled Project'}</h1>
+            <div className="flex items-center text-sm text-gray-600 mb-4">
+              <Globe size={16} className="mr-1 text-gray-500" />
+              <span>{project.clientName || 'N/A'} ({project.clientDomain || 'N/A'})</span>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <h3 className="text-sm uppercase text-gray-500 mb-2">Project Details</h3>
-                <div className="space-y-4">
-                  <div>
-                    <span className="inline-block px-2.5 py-0.5 bg-gray-100 text-gray-800 text-xs rounded-full mr-2">
-                      {project.clientCategory || ''}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar size={14} className="mr-2" />
-                    <span>{project.startDate || ''}</span>
-                    <span className="mx-2">→</span>
-                    <span>{project.endDate || ''}</span>
-                  </div>
-                  
-                  <p className="text-sm text-gray-600">
-                    {project.description || ''}
-                  </p>
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-sm uppercase text-gray-500">Team Members</h3>
-                  {isAdmin && (
-                    <button 
-                      onClick={() => setShowAddTeamMember(!showAddTeamMember)}
-                      className="flex items-center text-xs text-blue-600 hover:text-blue-800"
-                    >
-                      <UserPlus size={14} className="mr-1" />
-                      {showAddTeamMember ? 'Cancel' : 'Add Member'}
-                    </button>
-                  )}
-                </div>
-                
-                {isAdmin && showAddTeamMember && (
-                  <div className="bg-gray-50 p-3 rounded-lg mb-3 border border-gray-200">
-                    <h4 className="font-medium mb-2 text-sm text-gray-800">Add Team Member</h4>
-                    <form onSubmit={handleAddTeamMember} className="space-y-3">
-                      <div>
-                        <label htmlFor="memberName" className="block text-xs font-medium text-gray-700 mb-1">
-                          Name *
-                        </label>
-                        <select
-                          id="memberName"
-                          value={newTeamMemberName || ''}
-                          onChange={(e) => setNewTeamMemberName(e.target.value)}
-                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                          required
-                        >
-                          <option value="">Select member</option>
-                          {teamMemberOptions.map(m => <option key={m.name} value={m.name}>{m.name} ({m.role})</option>)}
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="memberRole" className="block text-xs font-medium text-gray-700 mb-1">
-                          Role *
-                        </label>
-                        <input
-                          id="memberRole"
-                          type="text"
-                          value={newTeamMemberRole}
-                          onChange={(e) => setNewTeamMemberRole(e.target.value)}
-                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                          required
-                        />
-                      </div>
-                      
-                      <div>
-                        <label htmlFor="memberTeam" className="block text-xs font-medium text-gray-700 mb-1">
-                          Team *
-                        </label>
-                        <select
-                          id="memberTeam"
-                          value={newTeamMemberTeam}
-                          onChange={(e) => setNewTeamMemberTeam(e.target.value as TeamName)}
-                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        >
-                          <option value="TITAN">TITAN</option>
-                          <option value="NEXUS">NEXUS</option>
-                          <option value="ATHENA">ATHENA</option>
-                          <option value="DYNAMIX">DYNAMIX</option>
-                        </select>
-                      </div>
-                      
-                      <div className="flex justify-end">
-                        <button
-                          type="submit"
-                          className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                          Add Member
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                )}
-                
-                <div className="space-y-3">
-                  {project.teamMembers.map((member, index) => (
-                    <div key={index} className="flex items-center">
-                      <img 
-                        src={member.avatar} 
-                        alt={member.name || ''} 
-                        className="w-8 h-8 rounded-full mr-3"
-                      />
-                      <div>
-                        <p className="font-medium text-sm">{member.name || ''}</p>
-                        <p className="text-xs text-gray-500">{member.role || ''}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${teamColorClasses[project.team || 'TITAN'] || 'bg-gray-200 text-gray-800'} mb-4`}>
+              {project.team || 'No Team'}
             </div>
-            
-            <div className="mb-8">
-              <h3 className="text-sm uppercase text-gray-500 mb-3">Milestones</h3>
-              <div className="space-y-2">
-                {project.milestones.map((milestone, index) => (
-                  <div 
-                    key={index} 
-                    className={`p-3 rounded-lg border text-sm ${
-                      milestone.completed 
-                        ? 'bg-green-50 border-green-100'
-                        : milestone.delayed
-                          ? 'bg-red-50 border-red-100'
-                          : 'bg-gray-50 border-gray-200'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center">
-                        {milestone.completed ? (
-                          <CheckCircle2 size={16} className="text-green-500 mr-2" />
-                        ) : milestone.delayed ? (
-                          <XCircle size={16} className="text-red-500 mr-2" />
-                        ) : (
-                          <div className="w-4 h-4 rounded-full border-2 border-gray-300 mr-2"></div>
-                        )}
-                        <span className="font-medium">{milestone.title || ''}</span>
-                      </div>
-                      <span>{milestone.date || ''}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+
+            <div className="flex flex-wrap items-center text-sm text-gray-700 mb-4">
+              <Calendar size={16} className="mr-1 text-gray-500" />
+              <span>{project.startDate || 'N/A'} - {project.endDate || 'N/A'}</span>
+              {project.clientCategory && (
+                <span className="ml-4 flex items-center">
+                  <Users size={16} className="mr-1 text-gray-500" />
+                  {project.clientCategory}
+                </span>
+              )}
+               {project.status && (
+                <span className={`ml-4 flex items-center px-2 py-0.5 border rounded-full text-xs ${statusColorClasses[project.status] || 'bg-gray-100 text-gray-800 border-gray-300'}`}>
+                  {project.status}
+                </span>
+              )}
             </div>
-            
-            {project.hasTasksModule && (
-              <div>
-                <div className="mb-4">
-                  <h3 className="text-sm uppercase text-gray-500 mb-3">Task Progress</h3>
-                  <div className="bg-gray-100 rounded-full h-4 mb-2">
-                    <div 
-                      className="bg-blue-500 h-4 rounded-full" 
-                      style={{ width: `${completionPercentage}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-600">
+
+            {project.description && (
+              <p className="text-gray-800 mb-4">{project.description}</p>
+            )}
+
+            {/* Task Progress */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Task Progress</h3>
+                 <div className="flex justify-between items-center text-sm text-gray-600 mb-4">
                     <span>{completionPercentage}% Complete</span>
                     <span>{taskStats.completed}/{taskStats.total} Tasks</span>
-                  </div>
                 </div>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
-                    <div className="text-xs text-blue-500 mb-1">To Do</div>
-                    <div className="text-2xl font-bold text-blue-700">{taskStats.todo || ''}</div>
-                  </div>
-                  
-                  <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
-                    <div className="text-xs text-amber-500 mb-1">In Progress</div>
-                    <div className="text-2xl font-bold text-amber-700">{taskStats.inProgress || ''}</div>
-                  </div>
-                  
-                  <div className="bg-green-50 border border-green-100 rounded-lg p-3">
-                    <div className="text-xs text-green-500 mb-1">Completed</div>
-                    <div className="text-2xl font-bold text-green-700">{taskStats.completed || ''}</div>
-                  </div>
-                  
-                  <div className="bg-red-50 border border-red-100 rounded-lg p-3">
-                    <div className="text-xs text-red-500 mb-1">Blocked</div>
-                    <div className="text-2xl font-bold text-red-700">{taskStats.blocked || ''}</div>
-                  </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${completionPercentage}%` }}
+                    ></div>
                 </div>
-                
-                <div className="mb-6 flex justify-between items-center">
-                  <h3 className="text-sm uppercase text-gray-500">Tasks</h3>
-                  {isAdmin ? (
-                    <button 
-                      onClick={() => setShowAddTask(!showAddTask)}
-                      className="flex items-center text-sm text-blue-600 hover:text-blue-800"
-                    >
-                      <Plus size={16} className="mr-1" />
-                      {showAddTask ? 'Cancel' : 'Add Task'}
-                    </button>
-                  ) : (
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Lock size={16} className="mr-1" />
-                      <span>Admin only</span>
+                 <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                    <div className="bg-blue-100 p-3 rounded-lg">
+                        <div className="font-bold text-blue-800 text-xl">{taskStats.todo}</div>
+                        <div className="text-blue-700 text-sm">To Do</div>
                     </div>
-                  )}
+                    <div className="bg-yellow-100 p-3 rounded-lg">
+                        <div className="font-bold text-yellow-800 text-xl">{taskStats.inProgress}</div>
+                        <div className="text-yellow-700 text-sm">In Progress</div>
+                    </div>
+                    <div className="bg-green-100 p-3 rounded-lg">
+                        <div className="font-bold text-green-800 text-xl">{taskStats.completed}</div>
+                        <div className="text-green-700 text-sm">Completed</div>
+                    </div>
+                    <div className="bg-red-100 p-3 rounded-lg">
+                        <div className="font-bold text-red-800 text-xl">{taskStats.blocked}</div>
+                        <div className="text-red-700 text-sm">Blocked</div>
+                    </div>
                 </div>
-                
-                {isAdmin && showAddTask && (
-                  <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
-                    <h4 className="font-medium mb-3 text-gray-800">Add New Task</h4>
-                    <form onSubmit={handleAddTask}>
-                      <div className="space-y-4">
-                        <div>
-                          <label htmlFor="taskTitle" className="block text-sm font-medium text-gray-700 mb-1">
-                            Task Title *
-                          </label>
-                          <input
-                            id="taskTitle"
-                            type="text"
-                            value={newTaskTitle}
-                            onChange={(e) => setNewTaskTitle(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            required
-                          />
-                        </div>
-                        
-                        <div>
-                          <label htmlFor="taskDescription" className="block text-sm font-medium text-gray-700 mb-1">
-                            Description
-                          </label>
-                          <textarea
-                            id="taskDescription"
-                            value={newTaskDescription}
-                            onChange={(e) => setNewTaskDescription(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            rows={3}
-                          />
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label htmlFor="taskPriority" className="block text-sm font-medium text-gray-700 mb-1">
-                              Priority
-                            </label>
-                            <select
-                              id="taskPriority"
-                              value={newTaskPriority}
-                              onChange={(e) => setNewTaskPriority(e.target.value as Task['priority'])}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            </div>
+
+            {/* Team Members */}
+            <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Team Members</h3>
+                {isAdmin && (
+                    <button 
+                      onClick={() => setShowAddTeamMember(!showAddTeamMember)}
+                      className="flex items-center px-3 py-1.5 mb-4 bg-green-50 text-green-700 border border-green-200 rounded hover:bg-green-100"
+                    >
+                      <UserPlus size={16} className="mr-1" />
+                      <span>{showAddTeamMember ? 'Cancel' : 'Add Team Member'}</span>
+                    </button>
+                )}
+
+                {isAdmin && showAddTeamMember && (
+                    <div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
+                        <h4 className="font-medium mb-3 text-gray-800">Add New Team Member</h4>
+                        <form onSubmit={handleAddTeamMember} className="space-y-3">
+                            <div>
+                                <label htmlFor="teamMemberName" className="block text-sm font-medium text-gray-700 mb-1">Select Member</label>
+                                <select
+                                    id="teamMemberName"
+                                    value={newTeamMemberName}
+                                    onChange={(e) => setNewTeamMemberName(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    required
+                                >
+                                    <option value="">-- Select a member --</option>
+                                    {teamMemberOptions.map(member => (
+                                        <option key={member.id} value={member.name}>
+                                            {member.name} ({member.role})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                             <div>
+                                <label htmlFor="teamMemberTeam" className="block text-sm font-medium text-gray-700 mb-1">Team</label>
+                                <select
+                                    id="teamMemberTeam"
+                                    value={newTeamMemberTeam}
+                                    onChange={(e) => setNewTeamMemberTeam(e.target.value as TeamName)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                >
+                                    {teams.map(teamName => (
+                                        <option key={teamName} value={teamName}>
+                                            {teamName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <button 
+                                type="submit"
+                                className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700"
                             >
-                              <option value="low">Low</option>
-                              <option value="medium">Medium</option>
-                              <option value="high">High</option>
-                            </select>
-                          </div>
-                          
-                          <div>
-                            <label htmlFor="taskAssignee" className="block text-sm font-medium text-gray-700 mb-1">
-                              Assignee
-                            </label>
-                            <select
-                              id="taskAssignee"
-                              value={newTaskAssigneeId}
-                              onChange={(e) => setNewTaskAssigneeId(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            >
-                              <option value="">Unassigned</option>
-                              {assignees.map((assignee: { id: string, name: string }) => (
-                                <option key={assignee.id} value={assignee.id}>
-                                  {assignee.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label htmlFor="taskProgress" className="block text-sm font-medium text-gray-700 mb-1">
-                            Progress (%)
-                          </label>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              id="taskProgress"
-                              type="range"
-                              min="0"
-                              max="100"
-                              step="5"
-                              value={newTaskProgress}
-                              onChange={(e) => setNewTaskProgress(parseInt(e.target.value))}
-                              className="flex-grow h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                            />
-                            <span className="w-10 text-center text-sm font-medium text-gray-700">{newTaskProgress}%</span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex justify-end">
-                          <button
-                            type="submit"
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                          >
-                            Add Task
-                          </button>
-                        </div>
-                      </div>
-                    </form>
-                  </div>
+                                Add Member
+                            </button>
+                        </form>
+                    </div>
                 )}
                 
-                <TaskList 
-                  tasks={tasks} 
-                  onTaskStatusChange={handleTaskStatusChange} 
-                  onTaskDelete={isAdmin ? handleDeleteTask : undefined}
-                  onTaskProgressChange={isAdmin ? handleUpdateTaskProgress : undefined}
-                />
-              </div>
-            )}
-          </>
+                {project.teamMembers && project.teamMembers.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {project.teamMembers.map(member => (
+                            <div key={member.id || member.name} className="flex items-center bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                                <img 
+                                    src={member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random&color=fff`}
+                                    alt={member.name}
+                                    className="w-10 h-10 rounded-full mr-3"
+                                />
+                                <div className="flex-grow">
+                                    <div className="font-medium text-gray-800">{member.name}</div>
+                                    <div className="text-sm text-gray-600">{member.role}</div>
+                                </div>
+                                {isAdmin && member.id && ( // Show remove button only for admins and if member has an ID
+                                  <button 
+                                    onClick={() => handleRemoveTeamMember(member.id)}
+                                    className="ml-2 text-red-600 hover:text-red-800"
+                                    title="Remove member"
+                                  >
+                                    <Trash2 size={18} />
+                                  </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-gray-500 text-sm">No team members assigned yet.</p>
+                )}
+            </div>
+
+            {/* Tasks Section */}
+            <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Tasks</h3>
+                 {isAdmin && (
+                    <button 
+                      onClick={() => setShowAddTask(!showAddTask)}
+                      className="flex items-center px-3 py-1.5 mb-4 bg-green-50 text-green-700 border border-green-200 rounded hover:bg-green-100"
+                    >
+                      <Plus size={16} className="mr-1" />
+                      <span>{showAddTask ? 'Cancel' : 'Add Task'}</span>
+                    </button>
+                )}
+
+                {isAdmin && showAddTask && (
+                    <div className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
+                        <h4 className="font-medium mb-3 text-gray-800">Add New Task</h4>
+                        <form onSubmit={handleAddTask} className="space-y-3">
+                            <div>
+                                <label htmlFor="taskTitle" className="block text-sm font-medium text-gray-700 mb-1">Task Title</label>
+                                <input
+                                    type="text"
+                                    id="taskTitle"
+                                    value={newTaskTitle}
+                                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    placeholder="e.g., Implement user authentication"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="taskDescription" className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                                <textarea
+                                    id="taskDescription"
+                                    value={newTaskDescription}
+                                    onChange={(e) => setNewTaskDescription(e.target.value)}
+                                    rows={3}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    placeholder="Details about the task..."
+                                ></textarea>
+                            </div>
+                             <div>
+                                <label htmlFor="taskPriority" className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                                <select
+                                    id="taskPriority"
+                                    value={newTaskPriority}
+                                    onChange={(e) => setNewTaskPriority(e.target.value as Task['priority'])}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                >
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </div>
+                             <div>
+                                <label htmlFor="taskAssignee" className="block text-sm font-medium text-gray-700 mb-1">Assignee (Optional)</label>
+                                <select
+                                    id="taskAssignee"
+                                    value={newTaskAssigneeId}
+                                    onChange={(e) => setNewTaskAssigneeId(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                >
+                                    <option value="">Unassigned</option>
+                                    {project.teamMembers?.map(member => (
+                                        <option key={member.id} value={member.id}>
+                                            {member.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="taskDueDate" className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                                <input
+                                    type="date"
+                                    id="taskDueDate"
+                                    value={newTaskDescription}
+                                    onChange={(e) => setNewTaskDescription(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="taskProgress" className="block text-sm font-medium text-gray-700 mb-1">Progress (%)</label>
+                                <input
+                                    type="number"
+                                    id="taskProgress"
+                                    value={newTaskProgress}
+                                    onChange={(e) => setNewTaskProgress(Number(e.target.value))}
+                                    min="0"
+                                    max="100"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                />
+                            </div>
+                            <button 
+                                type="submit"
+                                className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700"
+                            >
+                                Add Task
+                            </button>
+                        </form>
+                    </div>
+                )}
+
+                <TaskList tasks={tasks} onTaskStatusChange={handleTaskStatusChange} isAdmin={isAdmin} onDeleteTask={handleDeleteTask} onUpdateTaskProgress={handleUpdateTaskProgress} />
+
+            </div>
+          </div>
         )}
       </div>
     </div>

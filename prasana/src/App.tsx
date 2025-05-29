@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import  { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import FilterBar from './components/FilterBar';
@@ -11,13 +11,23 @@ import TeamCollaborationView from './components/TeamCollaborationView';
 import CreateProject from './components/CreateProject';
 import Timesheet from './components/Timesheet';
 import TeamMembers from './pages/TeamMembers';
+import { ActivityFeed } from './components/ActivityFeed';
 import { ViewMode, FilterState, TeamName, Project } from './types';
-import { projects } from './data/mockData';
 import { UserProvider, useUser } from './contexts/UserContext';
-import { getTasksForProject } from './data/taskData';
 import { Plus } from 'lucide-react';
-import { fetchProjects, addProject, updateProject, deleteProject } from './data/supabaseProjects';
+import { fetchProjects , updateProject, deleteProject } from './data/supabaseProjects';
 import AdminLogin from './components/AdminLogin';
+import EmployeeManagement from './components/EmployeeManagement';
+import { Briefcase, Clock, BarChart3 } from 'lucide-react';
+
+// Define a basic type for activity objects (adjust as needed based on backend)
+interface Activity {
+  id: number;
+  type: string;
+  user: string;
+  details: any;
+  timestamp: Date;
+}
 
 function AppContent() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -35,8 +45,11 @@ function AppContent() {
     clients: [],
     searchQuery: '',
   });
-  const { isAdmin, currentUser, logout } = useUser();
+  const { isAdmin } = useUser();
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+  
+  // State for activities
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
 
   // Fetch projects from Supabase on mount
   useEffect(() => {
@@ -125,9 +138,14 @@ function AppContent() {
 
   // Handle selecting a project
   const handleProjectClick = (project: Project) => {
-    // Always use the latest project object from projectsList by id
-    const latest = projectsList.find(p => p.id === project.id);
-    setSelectedProject(latest || project);
+    // Find the full project data from the projectsList state
+    const fullProject = projectsList.find(p => p.id === project.id);
+    if (fullProject) {
+      setSelectedProject(fullProject);
+    } else {
+      // Fallback to the clicked project if not found in the list (shouldn't happen if list is populated)
+      setSelectedProject(project);
+    }
   };
 
   // Handle back button from project detail
@@ -250,7 +268,11 @@ function AppContent() {
           </div>
         );
       case 'team-members':
-        return <TeamMembers />;
+        return (
+          <div className="container mx-auto px-4 py-6">
+            <TeamMembers />
+          </div>
+        );
       case 'projects':
         return (
           <div className="container mx-auto px-4 py-6">
@@ -280,10 +302,17 @@ function AppContent() {
             </div>
           </div>
         );
+      case 'dashboard':
       default:
         return (
           <div className="container mx-auto px-4 py-6">
-            <div className="flex justify-between items-center">
+            {/* Welcome Message */}
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-800">Welcome Back!</h2>
+              <p className="text-gray-600">Here's an overview of your projects and activities.</p>
+            </div>
+
+            <div className="flex justify-between items-center mb-6">
               <FilterBar 
                 filters={filters} 
                 setFilters={setFilters} 
@@ -299,12 +328,21 @@ function AppContent() {
                 </button>
               )}
             </div>
-            <div className="my-6">
-              <h2 className="text-xl font-bold mb-4 text-gray-800">Projects Overview</h2>
-              {renderGridOrList()}
-              <div className="mt-8">
+            <div style={{ border: '2px solid red', background: '#fffbe6', marginBottom: 24 }}>
+              <EmployeeManagement />
+            </div>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-bold mb-4 text-gray-800">Projects Overview</h2>
+                {renderGridOrList()}
+              </div>
+              <div>
                 <h2 className="text-xl font-bold mb-4 text-gray-800">Time Tracking</h2>
                 <Timesheet projects={supabaseProjects} />
+              </div>
+              <div className="mt-8">
+                <h2 className="text-xl font-bold mb-4 text-gray-800">Recent Activity</h2>
+                <ActivityFeed limit={10} />
               </div>
             </div>
           </div>
@@ -323,6 +361,15 @@ function AppContent() {
         onAdminLogin={() => setShowAdminLogin(true)}
       />
       
+      {/* Backdrop for mobile sidebar */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        ></div>
+      )}
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
           viewMode={viewMode} 

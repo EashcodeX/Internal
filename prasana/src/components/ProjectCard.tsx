@@ -27,13 +27,6 @@ const extractTeamFromRole = (role: string): TeamName | null => {
   return null;
 };
 
-const getTeamsInProject = (project: Project) => {
-  if (!project || !project.teams) {
-    return [];
-  }
-  return project.teams.map(team => team.name);
-};
-
 const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
   const [expanded, setExpanded] = useState(false);
   
@@ -45,7 +38,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     );
   }
 
-  const teams = project.teams || [];
   const teamMembers = project.teamMembers || [];
   
   return (
@@ -54,13 +46,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex flex-wrap gap-1">
             <span className={`px-3 py-1 rounded-full text-xs font-medium ${teamColorClasses[project.team]}`}>
-              {project.team} (Lead)
+              {project.team} {project.team === 'TITAN' && '(Lead)'}
             </span>
-            {teams.length > 1 && (
-              <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                + {teams.length - 1} teams
-              </span>
-            )}
           </div>
           <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColorClasses[project.status]}`}>
             {project.status}
@@ -71,8 +58,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
         
         <div className="flex items-center mb-4">
           <img 
-            src={project.clientLogo} 
-            alt={project.clientName} 
+            src={project.companyLogoUrl || project.clientLogo}
+            alt={`${project.clientName || 'Client'} Logo`}
             className="w-10 h-10 object-contain rounded mr-3 bg-gray-50"
           />
           <div>
@@ -139,45 +126,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
       
       {expanded && (
         <div className="px-5 py-3 border-t border-gray-100 bg-gray-50">
-          {teams.length > 0 && (
-            <div className="mb-4">
-              <h4 className="font-medium text-sm mb-2">Teams</h4>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {teams.map(team => (
-                  <span key={team} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                    {team}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          <h4 className="font-medium text-sm mb-2">Milestones</h4>
-          <div className="space-y-2">
-            {(project.milestones || []).map((milestone, index) => (
-              <div 
-                key={index} 
-                className={`text-xs p-2 rounded ${
-                  milestone.completed 
-                    ? 'bg-green-50 border border-green-100'
-                    : milestone.delayed
-                      ? 'bg-red-50 border border-red-100'
-                      : 'bg-gray-100 border border-gray-200'
-                }`}
-              >
-                <div className="flex justify-between">
-                  <span className="font-medium">{milestone.title}</span>
-                  <span>{milestone.date}</span>
-                </div>
-                <div className="mt-1">
-                  {milestone.completed && <span className="text-green-700">Completed</span>}
-                  {milestone.delayed && <span className="text-red-700">Delayed</span>}
-                  {!milestone.completed && !milestone.delayed && <span className="text-gray-600">Pending</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-          
           <h4 className="font-medium text-sm mt-4 mb-2">Team Members</h4>
           <div className="space-y-2">
             {teamMembers.map((member, index) => {

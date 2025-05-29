@@ -1,36 +1,45 @@
-# TIS - Project Management System
+# Technosprint Project Dashboard
 
 ## Overview
-TIS is a comprehensive project management system built with React, TypeScript, and Vite. It features a modern UI powered by Tailwind CSS and integrates with Supabase for data management. The application provides various views and tools for managing projects, teams, resources, and analytics.
+Technosprint Project Dashboard is a comprehensive project management system built with React, TypeScript, and Vite. It features a modern UI powered by Tailwind CSS with a refined premium color palette and integrates with Supabase for data management. The application provides various views and tools for managing projects, teams, resources, and analytics.
 
 ## Features
 
 ### 1. Project Management
 - Multiple view modes (Grid, List, Kanban)
 - Project creation and editing
-- Detailed project information
+- Detailed project information (including company logo)
 - Status tracking
 - Client management
+- Team member assignment and removal
 
-### 2. Team Collaboration
-- Team member management
-- Resource allocation
-- Leave management system
-- Badge management system
-- Profile management
+### 2. Employee Management
+- Track hours worked (aggregated weekly)
+- View team members from company data
+- Basic employee overview
 
-### 3. Time Tracking
+### 3. Team Collaboration
+- Resource allocation (partially implemented)
+- Badge management system (fetching logic exists)
+- Detailed user profiles (in progress, enhancing TeamMembers page)
+
+### 4. Time Tracking
 - Timesheet management
 - Time tracking per project
-- Resource utilization tracking
+- Resource utilization tracking (basic aggregation)
 
-### 4. Analytics
-- Project performance metrics
-- Team productivity analytics
-- Resource utilization reports
+### 5. Analytics
+- Project metrics (Total Projects, Projects by Team/Category)
+- Company-wide team metrics (Total Team Members)
 - Visual data representation using Recharts
+- Note: Some analytics features are in progress or have been adjusted based on requirements.
 
-### 5. Administrative Features
+### 6. Notifications and Activity Feed
+- Displays recent activities (project created, updated, deleted)
+- Backend table and fetching logic implemented
+- Frontend component with basic formatting and real-time (polling) updates
+
+### 7. Administrative Features
 - Admin dashboard
 - User role management
 - Project access control
@@ -45,9 +54,11 @@ TIS is a comprehensive project management system built with React, TypeScript, a
 - Tailwind CSS 4.1.7
 - Lucide React (for icons)
 - Recharts (for analytics visualizations)
+- date-fns (for date formatting)
 
 ### Backend
 - Supabase (Database and Authentication)
+- Custom SQL triggers and functions for data synchronization
 
 ## Project Structure
 
@@ -59,13 +70,15 @@ src/
 │   ├── ProjectGrid.tsx  # Grid view for projects
 │   ├── ProjectList.tsx  # List view for projects
 │   ├── KanbanBoard.tsx  # Kanban view for projects
+│   ├── ActivityFeed.tsx # Displays recent activities
 │   └── ...
 ├── contexts/            # React context providers
-├── data/               # Data management and API calls
-├── pages/              # Main application pages
+├── data/               # Data management and API calls (e.g., supabaseProjects.ts, supabaseActivities.ts)
+├── pages/              # Main application pages (e.g., TeamMembers.tsx)
+├── services/           # Service layer for backend interactions (e.g., timesheetService.ts)
 ├── styles/             # CSS and styling files
-├── types/              # TypeScript type definitions
-└── App.tsx             # Main application component
+├── types/              # TypeScript type definitions (e.g., types/timesheet.ts)
+└── App.tsx             # Main application component (handles routing and state)
 ```
 
 ## Setup Instructions
@@ -108,26 +121,45 @@ The main application component that handles:
 - View mode management (Grid/List/Kanban)
 - Project filtering
 - Page routing
-- State management
+- Global state management
 - User authentication
+- Integrates key sections like Employee Management, Projects, Timesheet, Analytics, and Activity Feed.
 
-### Resource Management
-- Team allocation
-- Resource scheduling
-- Capacity planning
-- Skill tracking
+### Employee Management (EmployeeManagement.tsx)
+- Component for viewing and tracking employee hours.
+- Fetches aggregated time entries from Supabase.
+- Displays team members based on company data.
 
-### Analytics Section
-- Project metrics
-- Team performance
-- Resource utilization
-- Custom reports
+### Analytics Section (AnalyticsSection.tsx)
+- Displays key metrics and charts for projects and team members.
+- Uses Recharts for visualizations.
+- Metrics include Total Projects, Projects by Team/Category, and Total Team Members.
 
-### Project Views
-- Grid view for quick overview
-- List view for detailed information
-- Kanban board for status tracking
-- Detailed project view for comprehensive information
+### Project Views (ProjectGrid.tsx, ProjectList.tsx, KanbanBoard.tsx, ProjectDetail.tsx)
+- Components for displaying projects in different layouts.
+- ProjectDetail.tsx shows comprehensive information, including team members.
+- Milestones feature has been removed from these views.
+
+### Timesheet (Timesheet.tsx)
+- Component for managing time entries.
+- Allows adding, editing, and deleting time entries.
+- Provides daily, weekly, and monthly views.
+- Includes filtering and export functionality.
+
+### Team Members (pages/TeamMembers.tsx)
+- Page for viewing team members.
+- Work in progress to enhance this page with detailed user profiles (skills, leave, performance).
+
+### Activity Feed (ActivityFeed.tsx)
+- Component for displaying recent system activities.
+- Fetches data from the new `activities` Supabase table.
+- Provides a real-time view of project and other key actions.
+
+## Ongoing UI/UX Refinement
+
+- Applying a refined premium color palette using Tailwind CSS.
+- Enhancing navigation and layout consistency across the application.
+- Improving mobile responsiveness.
 
 ## Contributing
 

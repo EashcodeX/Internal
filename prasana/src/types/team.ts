@@ -21,6 +21,7 @@ export interface TeamMember {
     badges?: Badge[]; // Array of badges held by the member
     team?: string;
     isLeadership?: boolean;
+    uuid?: string; // Supabase Auth UUID
 }
 
 export interface TeamData {

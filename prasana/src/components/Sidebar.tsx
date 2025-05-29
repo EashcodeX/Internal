@@ -1,6 +1,21 @@
 import React from 'react';
 import { TeamName } from '../types';
-import { Home, BarChart3, Users, Briefcase, Network, Clock, UserCircle, Shield } from 'lucide-react';
+import { 
+  Home, 
+  BarChart3, 
+  Users, 
+  Briefcase, 
+  Network, 
+  Clock, 
+  UserCircle, 
+  Shield,
+  LayoutDashboard,
+  BarChart2,
+  FolderKanban,
+  Users2,
+  Menu,
+  X
+} from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 
 const teamColorClasses: Record<TeamName, string> = {
@@ -28,62 +43,79 @@ const Sidebar: React.FC<SidebarProps> = ({
   onAdminLogin
 }) => {
   const { isAdmin } = useUser();
+
+  const handlePageClick = (page: 'dashboard' | 'analytics' | 'projects' | 'collaboration' | 'timesheet' | 'team-members') => {
+    setCurrentPage(page);
+    // Close sidebar on mobile after clicking a link
+    if (window.innerWidth < 768) { // Tailwind's md breakpoint is 768px
+      const appContent = document.getElementById('app-content');
+      if (appContent) {
+        appContent.click(); // Trigger the click handler on the content to close sidebar
+      }
+    }
+  };
+
   const handleTeamClick = (team: TeamName) => {
     setCurrentTeam(currentTeam === team ? null : team);
+    // Optional: Close sidebar on mobile after clicking a team filter
+    // if (window.innerWidth < 768) {
+    //   const appContent = document.getElementById('app-content');
+    //   if (appContent) {
+    //     appContent.click();
+    //   }
+    // }
   };
 
   const teams: TeamName[] = ['TITAN', 'NEXUS', 'ATHENA', 'DYNAMIX'];
 
+  const navigationItems = [
+    {
+      name: 'Dashboard',
+      icon: <LayoutDashboard size={18} />,
+      page: 'dashboard' as 'dashboard'
+    },
+    {
+      name: 'Analytics',
+      icon: <BarChart2 size={18} />,
+      page: 'analytics' as 'analytics'
+    },
+    {
+      name: 'Projects',
+      icon: <FolderKanban size={18} />,
+      page: 'projects' as 'projects'
+    },
+  ];
+
   return (
     <aside 
-      className={`${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed inset-y-0 left-0 z-20 transition-transform duration-300 ease-in-out w-64 bg-gray-900 text-white transform md:relative md:z-0 flex flex-col`}
+      className={`${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed inset-y-0 left-0 z-20 transition-transform duration-300 ease-in-out w-64 bg-primary text-neutral-100 transform md:relative md:z-0 flex flex-col`}
     >
       <div className="flex flex-col h-full">
         <div className="p-6">
           <h2 className="text-xl font-bold">Technosprint</h2>
-          <p className="text-sm text-gray-400">Project Dashboard</p>
+          <p className="text-sm text-neutral-400">Project Dashboard</p>
         </div>
 
         <nav className="flex-1 overflow-y-auto">
           <ul className="px-4 space-y-1">
+            {navigationItems.map((item) => (
+              <li key={item.page}>
+                <button 
+                  onClick={() => handlePageClick(item.page)}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${
+                    currentPage === item.page ? 'bg-primary-dark text-white' : 'text-neutral-200 hover:bg-primary-dark hover:text-white'
+                  }`}
+                >
+                  {item.icon}
+                  <span>{item.name}</span>
+                </button>
+              </li>
+            ))}
             <li>
               <button 
-                onClick={() => setCurrentPage('dashboard')}
+                onClick={() => handlePageClick('team-members')}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${
-                  currentPage === 'dashboard' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                }`}
-              >
-                <Home size={18} />
-                <span>Dashboard</span>
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => setCurrentPage('analytics')}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${
-                  currentPage === 'analytics' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                }`}
-              >
-                <BarChart3 size={18} />
-                <span>Analytics</span>
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => setCurrentPage('projects')}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${
-                  currentPage === 'projects' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                }`}
-              >
-                <Briefcase size={18} />
-                <span>Projects</span>
-              </button>
-            </li>
-            <li>
-              <button 
-                onClick={() => setCurrentPage('team-members')}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${
-                  currentPage === 'team-members' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  currentPage === 'team-members' ? 'bg-primary-dark text-white' : 'text-neutral-200 hover:bg-primary-dark hover:text-white'
                 }`}
               >
                 <UserCircle size={18} />
@@ -92,9 +124,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             </li>
             <li>
               <button 
-                onClick={() => setCurrentPage('collaboration')}
+                onClick={() => handlePageClick('collaboration')}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${
-                  currentPage === 'collaboration' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  currentPage === 'collaboration' ? 'bg-primary-dark text-white' : 'text-neutral-200 hover:bg-primary-dark hover:text-white'
                 }`}
               >
                 <Network size={18} />
@@ -103,9 +135,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             </li>
             <li>
               <button 
-                onClick={() => setCurrentPage('timesheet')}
+                onClick={() => handlePageClick('timesheet')}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg ${
-                  currentPage === 'timesheet' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  currentPage === 'timesheet' ? 'bg-primary-dark text-white' : 'text-neutral-200 hover:bg-primary-dark hover:text-white'
                 }`}
               >
                 <Clock size={18} />
@@ -115,7 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </ul>
 
           <div className="mt-8 px-4">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-4">Teams</h3>
+            <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2 px-4">Teams</h3>
             <ul className="space-y-1">
               {teams.map((team) => (
                 <li key={team} className="flex items-center">
@@ -123,8 +155,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     onClick={() => handleTeamClick(team)}
                     className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg ${
                       currentTeam === team 
-                        ? 'bg-gray-800 text-white' 
-                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                        ? 'bg-primary-dark text-white' 
+                        : 'text-neutral-200 hover:bg-primary-dark hover:text-white'
                     } transition-all`}
                   >
                     <span className={`w-3 h-3 rounded-full ${teamColorClasses[team]}`}></span>
@@ -137,11 +169,11 @@ const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         {/* Admin Login Button - Fixed at bottom */}
-        <div className="mt-auto p-4 border-t border-gray-800">
+        <div className="mt-auto p-4 border-t border-neutral-800">
           <button
             onClick={onAdminLogin}
-            className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg ${
-              isAdmin ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+            className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-neutral-200 hover:text-white border border-neutral-700 ${
+              isAdmin ? 'bg-success-dark hover:bg-success' : 'bg-primary-dark hover:bg-primary'
             } transition-colors`}
           >
             <Shield size={18} />
